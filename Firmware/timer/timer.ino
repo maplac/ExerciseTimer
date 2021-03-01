@@ -1,18 +1,19 @@
 #include <Wire.h>
-#include <Adafruit_GFX.h>
+//#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Fonts/FreeMonoBold24pt7b.h>
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 const int buttonPin1 = 15;
 const int buttonPin2 = 16;
-//const int buttonPin3 = 15;
 const int buzzerPin = 14;
 const unsigned long timeDebounce = 10;
 const unsigned long timeTimer = 1000;
 
 int counter = 0;
+int counterHalf = 0;
 unsigned long timeCounter = 0;
+bool flagTimerActive = false;
 
 unsigned long timeButtonDebounce1 = 0;
 int lastButtonState1 = HIGH;
@@ -22,11 +23,6 @@ unsigned long timeButtonDebounce2 = 0;
 int lastButtonState2 = HIGH;
 int buttonState2 = HIGH;
 bool buttonIgnoreEdge2 = false;
-/*unsigned long timeButtonDebounce3 = 0;
-int lastButtonState3 = HIGH;
-int buttonState3 = HIGH;*/
-
-bool flagTimerActive = false;
 
 //======================================================
 void printNumber(int number) {
@@ -43,13 +39,23 @@ void printNumber(int number) {
   display.display();
 }
 
+void makeSound(int frequency, int duration) {
+  pinMode(buzzerPin, OUTPUT);
+  tone(buzzerPin, frequency);
+  delay(duration);
+  noTone(buzzerPin);
+  pinMode(buzzerPin, INPUT);
+}
+void makeSound(int duration) {
+  makeSound(1000, duration);
+}
+
 void setup() {
   //Serial.begin(115200);
 
   pinMode(buttonPin1, INPUT | INPUT_PULLUP);
   pinMode(buttonPin2, INPUT | INPUT_PULLUP);
-  //pinMode(buttonPin3, INPUT | INPUT_PULLUP);
-    
+     
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     //Serial.println(F("SSD1306 allocation failed"));
     for(;;);
@@ -66,7 +72,6 @@ void loop() {
   unsigned long timeNow = millis();
   int buttonReading1 = digitalRead(buttonPin1);
   int buttonReading2 = digitalRead(buttonPin2);
-  //int buttonReading3 = digitalRead(buttonPin3);
 
   // Button add 20
   if (buttonReading1 != lastButtonState1) {
@@ -80,9 +85,11 @@ void loop() {
           buttonIgnoreEdge1 = false;
         } else {
           counter += 20;
+          counterHalf = counter / 2;
           printNumber(counter);
           flagTimerActive = true;
           timeCounter = timeNow;
+          makeSound(1000, 100);
         }
       }
     }
@@ -101,9 +108,11 @@ void loop() {
           buttonIgnoreEdge2 = false;
         } else {
           counter += 30;
+          counterHalf = counter / 2;
           printNumber(counter);
           flagTimerActive = true;
           timeCounter = timeNow;
+          makeSound(150);
         }
       }
     }
@@ -111,40 +120,30 @@ void loop() {
   lastButtonState2 = buttonReading2;
 
   if (buttonState1 == LOW && buttonState2 == LOW) {
+    if (counter != 0) {
+       makeSound(200);
+    }
     counter = 0;
     printNumber(counter);
     flagTimerActive = false;
     buttonIgnoreEdge1 = true;
     buttonIgnoreEdge2 = true;
-    //timeCounter = timeNow;
   }
-
-  /*// Button clear
-  if (buttonReading3 != lastButtonState3) {
-    timeButtonDebounce1 = timeNow;
-  }
-  if ((timeNow - timeButtonDebounce3) > timeDebounce) {
-    if (buttonReading3 != buttonState3) {
-      buttonState3 = buttonReading3;
-      if (buttonState3 == HIGH) {
-
-      }
-    }
-  }
-  lastButtonState3 = buttonReading3;*/
 
   if (flagTimerActive) {
     if (timeNow - timeCounter >= timeTimer) {
       timeCounter = timeNow;
       counter--;
       printNumber(counter);
+      if (counter == counterHalf) {
+        makeSound(100);
+      }
       if (counter <= 0) {
         flagTimerActive = false;
-        pinMode(buzzerPin, OUTPUT);
-        tone(buzzerPin, 300);
-        delay(200);
-        noTone(buzzerPin);
-        pinMode(buzzerPin, INPUT);
+        //makeSound(300, 200);
+        makeSound(50);
+        delay(50);
+        makeSound(200);
       }
     }
   }
